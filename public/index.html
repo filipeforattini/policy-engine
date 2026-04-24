@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AuthZ Playground</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --card: #111827;
+        --line: #334155;
+        --text: #e5e7eb;
+        --muted: #94a3b8;
+        --accent: #60a5fa;
+        --ok: #16a34a;
+        --err: #ef4444;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, Arial, sans-serif;
+        background: radial-gradient(circle at top right, #1e293b, var(--bg));
+        color: var(--text);
+        padding: 20px;
+      }
+      main {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        max-width: 1200px;
+      }
+      section {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px;
+      }
+      h1 {
+        margin: 0 0 16px;
+      }
+      h2 {
+        margin-top: 0;
+      }
+      .row {
+        display: grid;
+        gap: 8px;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      button, select, input {
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: #0b1220;
+        color: var(--text);
+        padding: 8px;
+      }
+      button {
+        background: #1d4ed8;
+        border-color: #1e40af;
+        cursor: pointer;
+      }
+      textarea {
+        width: 100%;
+        min-height: 260px;
+        border-radius: 8px;
+        background: #0b1220;
+        color: var(--text);
+        border: 1px solid var(--line);
+        padding: 10px;
+      }
+      .log {
+        background: #020617;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        padding: 10px;
+        min-height: 120px;
+        overflow: auto;
+        white-space: pre-wrap;
+      }
+      .ok { color: var(--ok); }
+      .error { color: var(--err); }
+      .item {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        margin: 8px 0;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .api-name {
+        font-weight: 600;
+      }
+      .resource-row {
+        display: grid;
+        gap: 8px;
+        border-top: 1px solid var(--line);
+        padding-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>AuthZ Playground</h1>
+    <main>
+      <section>
+        <h2>1) Token</h2>
+        <div class="row">
+          <label class="muted">Usuário</label>
+          <div class="controls">
+            <select id="userSelect">
+              <option value="u1">u1 (developer)</option>
+              <option value="u2">u2 (viewer)</option>
+              <option value="admin">admin</option>
+            </select>
+            <button id="btnToken">Pedir novo JWT</button>
+          </div>
+          <label class="muted">Token</label>
+          <textarea id="tokenBox" rows="3" readonly></textarea>
+          <div id="meInfo" class="muted"></div>
+        </div>
+        <p class="muted">Use este token para acessar os endpoints protegidos.</p>
+      </section>
+
+      <section>
+        <h2>2) Policies dinâmicas</h2>
+        <div class="row">
+          <div class="controls">
+            <button id="btnLoadPolicies">Carregar policies</button>
+            <button id="btnSavePolicies">Salvar policies</button>
+          </div>
+          <textarea id="policyEditor"></textarea>
+          <div id="policyLog" class="log"></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>3) Recursos</h2>
+        <div class="row">
+          <div class="controls">
+            <button id="btnLoadResources">Recarregar recursos</button>
+          </div>
+
+          <div class="row">
+            <label class="muted">Criar API</label>
+            <div class="controls">
+              <input id="apiId" placeholder="api-3" />
+              <input id="apiOwner" placeholder="ownerId" />
+              <select id="apiEnv">
+                <option value="dev">dev</option>
+                <option value="prod">prod</option>
+              </select>
+              <button id="btnCreateApi">Criar API</button>
+            </div>
+          </div>
+
+          <div class="muted" id="resourceSummary"></div>
+          <div id="apiList"></div>
+
+          <div class="resource-row">
+            <label class="muted">Criar key</label>
+            <div class="controls">
+              <input id="keyApiId" placeholder="apiId" />
+              <input id="keyOwner" placeholder="ownerId" />
+              <input id="keyLabel" placeholder="label" />
+              <button id="btnCreateKey">Criar key</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>4) Logs</h2>
+        <div id="log" class="log"></div>
+      </section>
+    </main>
+
+    <script>
+      const $ = (id) => document.getElementById(id)
+      const tokenBox = $("tokenBox")
+      const log = $("log")
+      const policyLog = $("policyLog")
+      const policyEditor = $("policyEditor")
+      const apiList = $("apiList")
+      const resourceSummary = $("resourceSummary")
+
+      const state = {
+        token: "",
+        resources: null,
+      }
+
+      const appendLog = (where, data, kind = "") => {
+        const text = typeof data === "string" ? data : JSON.stringify(data, null, 2)
+        where.textContent = text
+        where.className = `log ${kind}`
+      }
+
+      const apiCall = async (url, options = {}) => {
+        const headers = {
+          "Content-Type": "application/json",
+          ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}),
+        }
+        const merged = {
+          headers,
+          ...options,
+          headers: {
+            ...(options.headers || {}),
+            ...headers,
+          },
+        }
+        const res = await fetch(url, merged)
+        const text = await res.text()
+        let body = null
+        try {
+          body = JSON.parse(text)
+        } catch {
+          body = text
+        }
+        if (!res.ok) {
+          throw new Error(body?.error || body || `HTTP ${res.status}`)
+        }
+        return body
+      }
+
+      const getToken = async () => {
+        const userId = $("userSelect").value
+        const body = await apiCall("/auth/token", {
+          method: "POST",
+          body: JSON.stringify({ userId }),
+        })
+        state.token = body.accessToken
+        tokenBox.value = state.token
+        $("meInfo").textContent = `Autenticado como ${userId}`
+        appendLog(log, `JWT emitido para ${userId}` , "ok")
+      }
+
+      const loadPolicies = async () => {
+        const list = await apiCall("/api/policies")
+        policyEditor.value = JSON.stringify(list, null, 2)
+        appendLog(policyLog, `Policies carregadas (${list.length})`, "ok")
+      }
+
+      const savePolicies = async () => {
+        let parsed
+        try {
+          parsed = JSON.parse(policyEditor.value)
+        } catch (error) {
+          return appendLog(policyLog, `JSON inválido: ${error.message}`, "error")
+        }
+
+        const body = await apiCall("/api/policies", {
+          method: "PUT",
+          body: JSON.stringify(parsed),
+        })
+        appendLog(policyLog, `Policies salvas: ${body.count}`, "ok")
+        await loadPolicies()
+      }
+
+      const loadResources = async () => {
+        const data = await apiCall("/api/resources")
+        state.resources = data
+        renderResources()
+        appendLog(log, "Recursos atualizados")
+      }
+
+      const renderResources = () => {
+        const { apis, keys } = state.resources
+        resourceSummary.textContent = `${apis.length} apis, ${keys.length} keys`
+        apiList.innerHTML = apis
+          .map((api) => {
+            const apiKeys = keys.filter((k) => k.apiId === api.id)
+            const keysHtml = apiKeys
+              .map(
+                (key) => `
+              <div class="item">
+                <div><span class="api-name">Key</span> ${key.id} - ${key.label}</div>
+                <div class="muted">ownerId: ${key.ownerId}</div>
+                <div class="controls">
+                  <input value="${key.label}" data-key-id="${key.id}" data-api-id="${api.id}" data-type="keyLabel" />
+                  <button onclick="updateKey('${api.id}','${key.id}',this.previousElementSibling)">Salvar label</button>
+                  <button onclick="deleteKey('${api.id}','${key.id}')">Delete key</button>
+                </div>
+              </div>
+            `,
+              )
+              .join("")
+
+            return `
+            <div class="item">
+              <div><span class="api-name">API ${api.id}</span> (${api.tenantId} / ${api.environment})</div>
+              <div class="muted">ownerId: ${api.ownerId}</div>
+              <div class="controls">
+                <button onclick="deleteApi('${api.id}')">Delete API</button>
+                <button onclick="toggleRead('${api.id}')">Read API</button>
+                <button onclick="updateApi('${api.id}', '${api.ownerId === 'u1' ? 'u2' : 'u1'}')">Trocar owner</button>
+              </div>
+              <div class="resource-row">
+                <div class="muted">Keys</div>
+                ${keysHtml || "<div class='muted'>Sem key</div>"}
+              </div>
+            </div>
+            `
+          })
+          .join("")
+      }
+
+      const createApi = async () => {
+        const id = $("apiId").value || `api-${Date.now()}`
+        const ownerId = $("apiOwner").value || "u1"
+        const environment = $("apiEnv").value
+        const result = await apiCall("/api/resources/apis", {
+          method: "POST",
+          body: JSON.stringify({ id, ownerId, environment }),
+        })
+        appendLog(log, `API criada: ${result.id}`)
+        await loadResources()
+      }
+
+      const updateApi = async (apiId, nextOwnerId) => {
+        const result = await apiCall(`/api/resources/apis/${apiId}`, {
+          method: "PUT",
+          body: JSON.stringify({ ownerId: nextOwnerId }),
+        })
+        appendLog(log, `API atualizada: ${result.id}`)
+        await loadResources()
+      }
+
+      const deleteApi = async (apiId) => {
+        await apiCall(`/api/resources/apis/${apiId}`, { method: "DELETE" })
+        appendLog(log, `API removida: ${apiId}`)
+        await loadResources()
+      }
+
+      const createKey = async () => {
+        const apiId = $("keyApiId").value
+        const ownerId = $("keyOwner").value
+        const label = $("keyLabel").value
+        if (!apiId) return appendLog(log, "Informe apiId para key", "error")
+        const result = await apiCall(`/api/resources/apis/${apiId}/keys`, {
+          method: "POST",
+          body: JSON.stringify({ ownerId, label }),
+        })
+        appendLog(log, `Key criada: ${result.id} (${result.apiId})`)
+        await loadResources()
+      }
+
+      const updateKey = async (apiId, keyId, inputEl) => {
+        const label = inputEl.value
+        const result = await apiCall(`/api/resources/apis/${apiId}/keys/${keyId}`, {
+          method: "PUT",
+          body: JSON.stringify({ label }),
+        })
+        appendLog(log, `Key atualizada: ${result.id}`)
+        await loadResources()
+      }
+
+      const deleteKey = async (apiId, keyId) => {
+        await apiCall(`/api/resources/apis/${apiId}/keys/${keyId}`, { method: "DELETE" })
+        appendLog(log, `Key removida: ${keyId}`)
+        await loadResources()
+      }
+
+      const toggleRead = async (apiId) => {
+        const result = await apiCall(`/api/resources/apis/${apiId}`)
+        appendLog(log, `GET API ${apiId}: ${JSON.stringify(result)}`)
+      }
+
+      $("btnToken").onclick = getToken
+      $("btnLoadPolicies").onclick = loadPolicies
+      $("btnSavePolicies").onclick = savePolicies
+      $("btnLoadResources").onclick = loadResources
+      $("btnCreateApi").onclick = createApi
+      $("btnCreateKey").onclick = createKey
+
+      window.updateKey = updateKey
+      window.deleteKey = deleteKey
+      window.deleteApi = deleteApi
+      window.updateApi = updateApi
+      window.toggleRead = toggleRead
+
+      const init = async () => {
+        appendLog(log, "Iniciando...")
+        await getToken()
+        await Promise.all([loadPolicies(), loadResources()])
+      }
+      init().catch((error) => {
+        appendLog(log, `Inicialização falhou: ${error.message}`, "error")
+      })
+    </script>
+  </body>
+</html>
