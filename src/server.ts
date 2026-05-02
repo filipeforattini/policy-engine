@@ -1,3 +1,4 @@
+import crypto from "crypto"
 import express from "express"
 import path from "path"
 import jwt from "jsonwebtoken"
@@ -232,8 +233,18 @@ app.put("/api/policies", withAuth, authorizeRoute([
     rebuildAuthz(nextPolicies)
     res.json({ ok: true, count: nextPolicies.length })
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Invalid policies payload"
-    return res.status(400).json({ error: "invalid_policies", message })
+    const requestId = crypto.randomUUID()
+    const detail = error instanceof Error ? error.message : String(error)
+    console.error(
+      JSON.stringify({
+        level: "error",
+        event: "policy_parse_failed",
+        requestId,
+        principalId: (req as AuthRequest).authz?.principal.id,
+        detail,
+      }),
+    )
+    return res.status(400).json({ error: "invalid_policy_format", requestId })
   }
 })
 
