@@ -195,7 +195,7 @@ app.post("/auth/token", (req, res) => {
   const user = users[userId]
 
   if (!user) {
-    return res.status(404).json({ error: "user_not_found" })
+    return res.status(401).json({ error: "invalid_credentials" })
   }
 
   const token = createToken(user)
@@ -494,7 +494,11 @@ app.use((req, res) => {
   res.status(404).json({ error: "not_found" })
 })
 
-app.listen(3000, () => {
-  console.log("Servidor rodando em http://localhost:3000")
-  console.log("Abra http://localhost:3000")
-})
+export { app }
+
+if (require.main === module) {
+  app.listen(3000, () => {
+    console.log("Servidor rodando em http://localhost:3000")
+    console.log("Abra http://localhost:3000")
+  })
+}
