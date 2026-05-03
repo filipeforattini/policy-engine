@@ -1,0 +1,34 @@
+[
+  {
+    "id": "settings-read-by-scope",
+    "description": "Anyone with settings.read can read global settings",
+    "effect": "allow",
+    "principals": ["scope:settings.read"],
+    "actions": ["settings.read"],
+    "resources": ["settings:*"]
+  },
+  {
+    "id": "settings-write-by-scope",
+    "description": "Anyone with settings.write can update global settings",
+    "effect": "allow",
+    "principals": ["scope:settings.write"],
+    "actions": ["settings.update"],
+    "resources": ["settings:*"]
+  },
+  {
+    "id": "policy-read-by-scope",
+    "description": "Anyone with policy.read can browse the policy catalog",
+    "effect": "allow",
+    "principals": ["scope:policy.read"],
+    "actions": ["policy.read"],
+    "resources": ["policy:*"]
+  },
+  {
+    "id": "policy-write-by-scope",
+    "description": "Anyone with policy.write can reload policies",
+    "effect": "allow",
+    "principals": ["scope:policy.write"],
+    "actions": ["policy.update"],
+    "resources": ["policy:*"]
+  }
+]

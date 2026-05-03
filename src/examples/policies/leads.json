@@ -1,0 +1,213 @@
+[
+  {
+    "id": "leads-read-pool-by-seller",
+    "description": "Seller reads unowned new leads in their own channel",
+    "effect": "allow",
+    "principals": ["scope:lead.read"],
+    "actions": ["lead.read"],
+    "resources": ["lead:*"],
+    "match": {
+      "resource.channelId": "@principal.groups",
+      "resource.status": "novo",
+      "resource.assignedTo": null
+    }
+  },
+  {
+    "id": "leads-read-mine-by-seller",
+    "description": "Seller reads a lead assigned to them in their own channel",
+    "effect": "allow",
+    "principals": ["scope:lead.read"],
+    "actions": ["lead.read"],
+    "resources": ["lead:*"],
+    "match": {
+      "resource.channelId": "@principal.groups",
+      "resource.assignedTo": "@principal.id"
+    }
+  },
+  {
+    "id": "leads-read-shared-by-seller",
+    "description": "Seller reads a lead explicitly shared with them in their channel",
+    "effect": "allow",
+    "principals": ["scope:lead.read"],
+    "actions": ["lead.read"],
+    "resources": ["lead:*"],
+    "match": {
+      "resource.channelId": "@principal.groups",
+      "resource.sharedWith": "@principal.id"
+    }
+  },
+  {
+    "id": "leads-read-channel-by-manager",
+    "description": "Manager reads all leads in their channel",
+    "effect": "allow",
+    "principals": ["scope:lead.read"],
+    "actions": ["lead.read"],
+    "resources": ["lead:*"],
+    "match": {
+      "principal.attrs.role": "manager",
+      "resource.channelId": "@principal.groups"
+    }
+  },
+  {
+    "id": "leads-read-by-admin",
+    "description": "Admin reads any lead without restrictions",
+    "effect": "allow",
+    "principals": ["group:admins"],
+    "actions": ["lead.read"],
+    "resources": ["lead:*"]
+  },
+  {
+    "id": "leads-claim-by-seller",
+    "description": "Seller claims an unowned new lead from their channel pool",
+    "effect": "allow",
+    "principals": ["scope:lead.claim"],
+    "actions": ["lead.claim"],
+    "resources": ["lead:*"],
+    "match": {
+      "resource.channelId": "@principal.groups",
+      "resource.status": "novo",
+      "resource.assignedTo": null
+    }
+  },
+  {
+    "id": "leads-claim-by-admin",
+    "description": "Admin assigns any lead to any seller",
+    "effect": "allow",
+    "principals": ["group:admins"],
+    "actions": ["lead.claim"],
+    "resources": ["lead:*"]
+  },
+  {
+    "id": "leads-move-by-seller",
+    "description": "Seller moves their own lead through the funnel",
+    "effect": "allow",
+    "principals": ["scope:lead.move"],
+    "actions": ["lead.move"],
+    "resources": ["lead:*"],
+    "match": {
+      "resource.channelId": "@principal.groups",
+      "resource.assignedTo": "@principal.id"
+    }
+  },
+  {
+    "id": "leads-move-by-manager",
+    "description": "Manager moves any lead in their channel",
+    "effect": "allow",
+    "principals": ["scope:lead.move"],
+    "actions": ["lead.move"],
+    "resources": ["lead:*"],
+    "match": {
+      "principal.attrs.role": "manager",
+      "resource.channelId": "@principal.groups"
+    }
+  },
+  {
+    "id": "leads-move-by-admin",
+    "description": "Admin moves any lead",
+    "effect": "allow",
+    "principals": ["group:admins"],
+    "actions": ["lead.move"],
+    "resources": ["lead:*"]
+  },
+  {
+    "id": "leads-write-by-scope",
+    "description": "Anyone with lead.write can create and update leads",
+    "effect": "allow",
+    "principals": ["scope:lead.write"],
+    "actions": ["lead.create", "lead.update"],
+    "resources": ["lead:*"]
+  },
+  {
+    "id": "leads-delete-by-scope",
+    "description": "Anyone with lead.delete can remove leads",
+    "effect": "allow",
+    "principals": ["scope:lead.delete"],
+    "actions": ["lead.delete"],
+    "resources": ["lead:*"]
+  },
+  {
+    "id": "leads-share-by-owner",
+    "description": "Lead owner shares their lead with another seller in the channel",
+    "effect": "allow",
+    "principals": ["scope:lead.move"],
+    "actions": ["lead.share"],
+    "resources": ["lead:*"],
+    "match": {
+      "resource.channelId": "@principal.groups",
+      "resource.assignedTo": "@principal.id"
+    }
+  },
+  {
+    "id": "leads-share-by-manager",
+    "description": "Manager shares any lead in their channel",
+    "effect": "allow",
+    "principals": ["scope:lead.move"],
+    "actions": ["lead.share"],
+    "resources": ["lead:*"],
+    "match": {
+      "principal.attrs.role": "manager",
+      "resource.channelId": "@principal.groups"
+    }
+  },
+  {
+    "id": "leads-any-action-by-admin-doublestar",
+    "description": "Admin performs any lead operation (demonstrates lead.** in actions)",
+    "effect": "allow",
+    "principals": ["group:admins"],
+    "actions": ["lead.**"],
+    "resources": ["lead:*"]
+  },
+  {
+    "id": "read-any-resource-by-cross-readers-group",
+    "description": "cross-readers group members read any resource via *.read in actions",
+    "effect": "allow",
+    "principals": ["group:cross-readers"],
+    "actions": ["*.read"],
+    "resources": ["*:*"]
+  },
+  {
+    "id": "leads-read-by-alternation",
+    "description": "scope:lead.{read,claim} grants lead.read on pool leads (demonstrates alternation in principals)",
+    "effect": "allow",
+    "principals": ["scope:lead.{read,claim}"],
+    "actions": ["lead.read"],
+    "resources": ["lead:*"],
+    "match": {
+      "resource.channelId": "@principal.groups",
+      "resource.status": "novo",
+      "resource.assignedTo": null
+    }
+  },
+  {
+    "id": "lead-single-id-by-question",
+    "description": "Access lead:l? — 2-char id (demonstrates ? in resources)",
+    "effect": "allow",
+    "principals": ["scope:lead.read"],
+    "actions": ["lead.read"],
+    "resources": ["lead:l?"]
+  },
+  {
+    "id": "lead-char-class-by-bracket",
+    "description": "Access lead:l[12] — id l1 or l2 (demonstrates [abc] in resources)",
+    "effect": "allow",
+    "principals": ["scope:lead.read"],
+    "actions": ["lead.read"],
+    "resources": ["lead:l[12]"]
+  },
+  {
+    "id": "audit-lead-reads-by-seller",
+    "description": "Shadow audit: observe all lead reads by sellers — never gates, but populates auditedPolicyIds",
+    "effect": "audit",
+    "principals": ["scope:lead.read"],
+    "actions": ["lead.read"],
+    "resources": ["lead:*"]
+  },
+  {
+    "id": "audit-lead-reads-cross-channel",
+    "description": "Shadow audit: flag when an admin reads leads (observability for future scope narrowing)",
+    "effect": "audit",
+    "principals": ["group:admins"],
+    "actions": ["lead.read", "lead.**"],
+    "resources": ["lead:*"]
+  }
+]

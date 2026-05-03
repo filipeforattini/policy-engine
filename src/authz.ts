@@ -2,6 +2,8 @@ export type PolicyEffect = "allow" | "deny"
 
 export type Principal = {
   id: string
+  groups?: string[]
+  scopes?: string[]
   roles?: string[]
   attrs?: Record<string, unknown>
 }
@@ -31,6 +33,7 @@ export type PolicyCondition = (input: AuthzInput) => boolean
 
 export type RawPolicy = {
   id: string
+  description?: string
   effect: PolicyEffect
   principals: string[]
   actions: string[]
@@ -77,9 +80,11 @@ export function createAuthz(opts: { policies: RawPolicy[] }) {
   const compiled = compilePolicies(opts.policies)
 
   const compilePrincipalSet = (principal: Principal): string[] => {
-    const base = [principal.id, `user:${principal.id}`]
-    const roles = principal.roles?.map((r) => `role:${r}`) ?? []
-    return [...base, ...roles, "*"]
+    const base   = [principal.id, `user:${principal.id}`]
+    const roles  = principal.roles?.map((r)  => `role:${r}`)  ?? []
+    const groups = principal.groups?.map((g) => `group:${g}`) ?? []
+    const scopes = principal.scopes?.map((s) => `scope:${s}`) ?? []
+    return [...base, ...roles, ...groups, ...scopes, "*"]
   }
 
   function evaluate(input: AuthzInput): Decision {

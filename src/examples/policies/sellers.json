@@ -1,0 +1,26 @@
+[
+  {
+    "id": "sellers-read-by-scope",
+    "description": "Anyone with seller.read can list sellers",
+    "effect": "allow",
+    "principals": ["scope:seller.read"],
+    "actions": ["seller.read"],
+    "resources": ["seller:*"]
+  },
+  {
+    "id": "sellers-write-by-scope",
+    "description": "Anyone with seller.write can create and update sellers",
+    "effect": "allow",
+    "principals": ["scope:seller.write"],
+    "actions": ["seller.create", "seller.update"],
+    "resources": ["seller:*"]
+  },
+  {
+    "id": "sellers-delete-by-scope",
+    "description": "Anyone with seller.delete can remove sellers",
+    "effect": "allow",
+    "principals": ["scope:seller.delete"],
+    "actions": ["seller.delete"],
+    "resources": ["seller:*"]
+  }
+]

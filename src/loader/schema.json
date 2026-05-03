@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "policy-engine/policy",
+  "title": "JsonPolicy",
+  "description": "A declarative authorization policy for the policy engine.",
+
+  "definitions": {
+    "matchLiteral": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "boolean" },
+        { "type": "null" }
+      ]
+    },
+    "matchOperator": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "==":         { "$ref": "#/definitions/matchLiteral" },
+        "!=":         { "$ref": "#/definitions/matchLiteral" },
+        "<":          { "oneOf": [{ "type": "number" }, { "type": "string" }] },
+        "<=":         { "oneOf": [{ "type": "number" }, { "type": "string" }] },
+        ">":          { "oneOf": [{ "type": "number" }, { "type": "string" }] },
+        ">=":         { "oneOf": [{ "type": "number" }, { "type": "string" }] },
+        "in": {
+          "oneOf": [
+            { "type": "array", "items": { "$ref": "#/definitions/matchLiteral" } },
+            { "type": "string", "description": "@ref to an array path" }
+          ]
+        },
+        "notIn": {
+          "oneOf": [
+            { "type": "array", "items": { "$ref": "#/definitions/matchLiteral" } },
+            { "type": "string", "description": "@ref to an array path" }
+          ]
+        },
+        "regex":      { "type": "string" },
+        "startsWith": { "type": "string" },
+        "endsWith":   { "type": "string" },
+        "contains":   { "type": "string" },
+        "exists":     { "type": "boolean" }
+      }
+    },
+    "matchValue": {
+      "oneOf": [
+        { "$ref": "#/definitions/matchLiteral" },
+        { "$ref": "#/definitions/matchOperator" }
+      ]
+    },
+    "matchNode": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["allOf"],
+          "additionalProperties": false,
+          "properties": {
+            "allOf": { "type": "array", "items": { "$ref": "#/definitions/matchNode" } }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["anyOf"],
+          "additionalProperties": false,
+          "properties": {
+            "anyOf": { "type": "array", "items": { "$ref": "#/definitions/matchNode" } }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["not"],
+          "additionalProperties": false,
+          "properties": {
+            "not": { "$ref": "#/definitions/matchNode" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/definitions/matchValue" },
+          "description": "Leaf record: dotted-path keys mapped to MatchValue"
+        }
+      ]
+    }
+  },
+
+  "type": "object",
+  "required": ["id", "description", "effect", "principals", "actions", "resources"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique policy identifier."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable summary of what this policy grants or denies."
+    },
+    "effect": {
+      "type": "string",
+      "enum": ["allow", "deny", "audit"],
+      "description": "allow: grant access. deny: explicit deny (trumps allow). audit: log match but never gate."
+    },
+    "principals": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "Glob patterns matched against the compiled principal set (id, user:id, scope:X, group:X, *)."
+    },
+    "actions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "Glob patterns matched against the requested action (dot-namespaced, e.g. lead.read, lead.**)."
+    },
+    "resources": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "Glob patterns matched against type:id or type (e.g. lead:*, lead:l?, *)."
+    },
+    "match": {
+      "$ref": "#/definitions/matchNode",
+      "description": "Declarative condition compiled to a PolicyCondition at load time."
+    },
+    "customCondition": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Name of a TS function in the customConditions map passed to loadPoliciesFromDir."
+    }
+  }
+}

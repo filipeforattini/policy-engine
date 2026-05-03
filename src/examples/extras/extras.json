@@ -1,0 +1,11 @@
+[
+  {
+    "id": "leads-read-business-hours-only",
+    "description": "Lead reads are only allowed during business hours (customCondition escape hatch demo)",
+    "effect": "allow",
+    "principals": ["scope:lead.read"],
+    "actions": ["lead.read"],
+    "resources": ["lead:*"],
+    "customCondition": "business-hours"
+  }
+]

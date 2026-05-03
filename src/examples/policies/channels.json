@@ -1,0 +1,26 @@
+[
+  {
+    "id": "channels-read-by-scope",
+    "description": "Anyone with channel.read can browse the channel catalog",
+    "effect": "allow",
+    "principals": ["scope:channel.read"],
+    "actions": ["channel.read"],
+    "resources": ["channel:*"]
+  },
+  {
+    "id": "channels-write-by-scope",
+    "description": "Anyone with channel.write can create and update channels",
+    "effect": "allow",
+    "principals": ["scope:channel.write"],
+    "actions": ["channel.create", "channel.update"],
+    "resources": ["channel:*"]
+  },
+  {
+    "id": "channels-delete-by-scope",
+    "description": "Anyone with channel.delete can remove channels",
+    "effect": "allow",
+    "principals": ["scope:channel.delete"],
+    "actions": ["channel.delete"],
+    "resources": ["channel:*"]
+  }
+]
